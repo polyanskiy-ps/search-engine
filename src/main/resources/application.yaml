@@ -1,0 +1,21 @@
+spring:
+  jpa:
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+        hbm2ddl:
+          auto: update
+        show_sql: false
+  datasource:
+    username: root
+    password: test123
+    url: jdbc:mysql://:3306/search_engine?useSSL=false&requireSSL=false&allowPublicKeyRetrieval=true
+server:
+  port: 8080
+
+indexing-settings:
+  sites:
+    - url: http://www.playback.ru/
+      name: Playback
+    - url: https://ipfran.ru/
+      name: ipfran
