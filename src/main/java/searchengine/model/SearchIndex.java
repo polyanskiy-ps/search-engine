@@ -2,6 +2,7 @@ package searchengine.model;
 
 import jakarta.persistence.*;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.util.Objects;
@@ -10,6 +11,7 @@ import java.util.Objects;
 @Table
 @Setter
 @Getter
+@NoArgsConstructor(force = true)
 public class SearchIndex {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -18,14 +20,20 @@ public class SearchIndex {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(referencedColumnName = "page_id", name = "page_id")
-    private PageEntity pageID;
+    private final PageEntity pageID;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(referencedColumnName = "lemma_id", name = "lemma_id")
-    private LemmaEntity lemmaID;
+    private final LemmaEntity lemmaID;
 
     @Column(name = "search_rank", nullable = false)
-    private float searchRank;
+    private final float searchRank;
+
+    public SearchIndex(PageEntity pageID, LemmaEntity lemmaID, float searchRank) {
+        this.pageID = pageID;
+        this.lemmaID = lemmaID;
+        this.searchRank = searchRank;
+    }
 
     @Override
     public boolean equals(Object o) {

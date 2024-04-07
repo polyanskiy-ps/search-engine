@@ -19,7 +19,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class SnippetGenerator {
 	private String text;
-	private List<String> queryWords;
+	@Setter
+    private List<String> queryWords;
 	private final Lemmatizer lemmatizer;
 	private final Integer SNIPPET_LENGTH = 100;
 	private final Integer MAX_FULL_SNIPPET_LENGTH = 1000;
@@ -31,11 +32,7 @@ public class SnippetGenerator {
 				.replaceAll("\\s+", " ");
 	}
 
-	public void setQueryWords(List<String> queryWords) {
-		this.queryWords = queryWords;
-	}
-
-	public Map<Integer, String> getWordsAndPos( String text) {
+    public Map<Integer, String> getWordsAndPos( String text) {
 		Map<Integer, String> words = new HashMap<>();
 		int pos = 0;
 		int index = text.indexOf(" ");

@@ -72,18 +72,8 @@ public class SiteParser extends RecursiveAction {
             List<SearchIndex> searchIndexList = new ArrayList<>();
 
             for(Map.Entry<String, Integer> lemma:lemmas.entrySet()){
-
-                LemmaEntity lemmaEntity = new LemmaEntity();
-                lemmaEntity.setSiteID(site);
-                lemmaEntity.setLemma(lemma.getKey());
-                lemmaEntity.setFrequency(lemma.getValue());
-                lemmaEntityList.add(lemmaEntity);
-
-                SearchIndex searchIndex = new SearchIndex();
-                searchIndex.setPageID(page);
-                searchIndex.setLemmaID(lemmaEntity);
-                searchIndex.setSearchRank(lemma.getValue());
-                searchIndexList.add(searchIndex);
+                lemmaEntityList.add(createLemmaEntity(site, lemma.getKey(), lemma.getValue()));
+                searchIndexList.add(createSearchIndex(page, lemmaEntityList.get(lemmaEntityList.size() - 1), lemma.getValue()));
             }
             lemmaRepository.saveAll(lemmaEntityList);
             searchIndexRepository.saveAll(searchIndexList);
@@ -92,32 +82,42 @@ public class SiteParser extends RecursiveAction {
             log.info("Не удается выполнить парсинг сайта {}", url);
         }
 
-            List<String> links = collectLinks(url);
-            List<SiteParser> tasks = new ArrayList<>();
-            for (String link : links)
+        List<String> links = collectLinks(url);
+        List<SiteParser> tasks = new ArrayList<>();
+        for (String link : links)
+        {
+            if (!hrefList.contains(link) && !links.isEmpty())
             {
-                if (!hrefList.contains(link) && !links.isEmpty())
-                {
-                    SiteParser siteParser = new SiteParser(
-                            link,
-                            hrefList,
-                            site,
-                            pageRepository,
-                            siteRepository,
-                            lemmaRepository,
-                            searchIndexRepository);
-                    siteParser.fork();
-                    hrefList.add(link);
-                    log.info("Парсинг {}", link);
-                    tasks.add(siteParser);
-                }
+                SiteParser siteParser = new SiteParser(
+                        link,
+                        hrefList,
+                        site,
+                        pageRepository,
+                        siteRepository,
+                        lemmaRepository,
+                        searchIndexRepository);
+                siteParser.fork();
+                hrefList.add(link);
+                log.info("Парсинг {}", link);
+                tasks.add(siteParser);
             }
+        }
 
-            for (SiteParser task : tasks)
-            {
-                task.join();
-            }
+        for (SiteParser task : tasks)
+        {
+            task.join();
+        }
     }
+
+    private LemmaEntity createLemmaEntity(SiteEntity site, String lemma, int frequency) {
+        return new LemmaEntity(site, lemma, frequency);
+    }
+
+    private SearchIndex createSearchIndex(PageEntity page, LemmaEntity lemmaEntity, Integer searchRank) {
+        return new SearchIndex(page, lemmaEntity, searchRank);
+
+    }
+
 
     @SneakyThrows
     public synchronized List<String> collectLinks(String url) {

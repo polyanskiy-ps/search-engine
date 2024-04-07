@@ -86,22 +86,22 @@ public class PageParser {
             List<SearchIndex> searchIndexList = new ArrayList<>();
 
             for (Map.Entry<String, Integer> lemma : lemmas.entrySet()) {
-                LemmaEntity lemmaEntity = new LemmaEntity();
-                lemmaEntity.setSiteID(site);
-                lemmaEntity.setLemma(lemma.getKey());
-                lemmaEntity.setFrequency(lemma.getValue());
-                lemmaEntityList.add(lemmaEntity);
-
-                SearchIndex searchIndex = new SearchIndex();
-                searchIndex.setPageID(page);
-                searchIndex.setLemmaID(lemmaEntity);
-                searchIndex.setSearchRank(lemma.getValue());
-                searchIndexList.add(searchIndex);
+                lemmaEntityList.add(createLemmaEntity(site, lemma.getKey(), lemma.getValue()));
+                searchIndexList.add(createSearchIndex(page, lemmaEntityList.get(lemmaEntityList.size() - 1), lemma.getValue()));
             }
             lemmaRepository.saveAll(lemmaEntityList);
             searchIndexRepository.saveAll(searchIndexList);
         } catch (IOException e) {
             log.info("Не удается выполнить парсинг сайта {}", url);
         }
+    }
+
+    private LemmaEntity createLemmaEntity(SiteEntity site, String lemma, int frequency) {
+        return new LemmaEntity(site, lemma, frequency);
+    }
+
+    private SearchIndex createSearchIndex(PageEntity page, LemmaEntity lemmaEntity, Integer searchRank) {
+        return new SearchIndex(page, lemmaEntity, searchRank);
+
     }
 }

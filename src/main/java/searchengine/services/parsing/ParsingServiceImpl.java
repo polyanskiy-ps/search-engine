@@ -2,6 +2,7 @@ package searchengine.services.parsing;
 
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import searchengine.config.Site;
 import searchengine.config.SitesList;
@@ -13,7 +14,6 @@ import searchengine.repositories.PageRepository;
 import searchengine.repositories.SearchIndexRepository;
 import searchengine.repositories.SiteRepository;
 
-import javax.inject.Inject;
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.util.TreeSet;
@@ -23,30 +23,30 @@ import java.util.concurrent.ForkJoinPool;
 @Slf4j
 public class ParsingServiceImpl implements ParsingService {
 
-    @Inject
+    @Autowired
     SitesList sites;
-    @Inject
+    @Autowired
     SiteRepository siteRepository;
-    @Inject
+    @Autowired
     PageRepository pageRepository;
-    @Inject
+    @Autowired
     LemmaRepository lemmaRepository;
-    @Inject
+    @Autowired
     SearchIndexRepository searchIndexRepository;
-    private boolean started;
-    private boolean contains;
+    private boolean isIndexingStarted;
+    private boolean isContainsUrl;
     private SiteEntity siteEntity;
     private ForkJoinPool forkJoinPool;
 
-    SimpleDateFormat formatter = new SimpleDateFormat("dd-MM-yyyy hh:mm:ss");
+    final SimpleDateFormat formatter = new SimpleDateFormat("dd-MM-yyyy hh:mm:ss");
 
     @Override
     @SneakyThrows
     public IndexingResponse startIndexing() {
-        if (started) {
+        if (isIndexingStarted) {
             log.info("Запрос запуска индексации при уже выполняющейся");
             return new IndexingResponse(false, "Индексация уже запущена");
-        } else started = true;
+        } else isIndexingStarted = true;
         long startIndexing = System.currentTimeMillis();
         log.info("Индексация запущена в {}", formatter.format(startIndexing));
         searchIndexRepository.deleteAll();
@@ -57,17 +57,17 @@ public class ParsingServiceImpl implements ParsingService {
         for (Site site : sites.getSites()) {
             indexSite(site);
         }
-        started = false;
+        isIndexingStarted = false;
         log.info("Индексация завершена за {}", System.currentTimeMillis() - startIndexing);
         return new IndexingResponse(true);
     }
 
     @Override
     public IndexingResponse stopIndexing() {
-        if (!started) {
+        if (!isIndexingStarted) {
             log.info("Запрос остановки индексации в момент, когда индексация не выполняется");
             return new IndexingResponse(false, "Индексация не запущена");
-        } else started = false;
+        } else isIndexingStarted = false;
         log.info("Остановка индексации ");
         forkJoinPool.shutdownNow();
         Iterable<SiteEntity> siteList = siteRepository.findAll();
@@ -89,12 +89,12 @@ public class ParsingServiceImpl implements ParsingService {
         Site indexingSite = new Site();
         for (Site site : sites.getSites()) {
             if (url.contains(site.getUrl())) {
-                contains = true;
+                isContainsUrl = true;
                 indexingSite = site;
                 break;
             }
         }
-        if (contains) {
+        if (isContainsUrl) {
             boolean containsInRepository = false;
             for (SiteEntity site : siteRepository.findAll()) {
                 if (site.getName().equals(indexingSite.getName())) {

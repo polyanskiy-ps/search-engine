@@ -31,7 +31,6 @@ public class SearchingServiceImpl implements SearchingService {
     private final Lemmatizer lemmatizer;
     private final SnippetGenerator snippetGenerator;
     private final SitesList sitesList;
-    private final int removableLemmasPercent = 5;
 
     @Override
     public SearchResponse getSearchResults(String query, String siteUrl, Integer offset, Integer limit) {
@@ -192,6 +191,7 @@ public class SearchingServiceImpl implements SearchingService {
     private ArrayList<LemmaEntity> removeMostFrequentlyLemmas(List<LemmaEntity> lemmas) {
         log.info("Исключение наиболее встречающихся лемм");
         ArrayList<LemmaEntity> reList = new ArrayList<>(lemmas);
+        int removableLemmasPercent = 5;
         int removeCount = Math.round((float) lemmas.size() / 100 * removableLemmasPercent);
         log.info("Количество исключаемых лемм {}", removeCount);
         LemmaEntity removable = new LemmaEntity();

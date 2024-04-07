@@ -1,6 +1,7 @@
 package searchengine.services.statistics;
 
 import lombok.Data;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import searchengine.config.Site;
 import searchengine.config.SitesList;
@@ -16,7 +17,6 @@ import searchengine.repositories.LemmaRepository;
 import searchengine.repositories.PageRepository;
 import searchengine.repositories.SiteRepository;
 
-import javax.inject.Inject;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
@@ -26,13 +26,13 @@ import java.util.List;
 @Data
 public class StatisticsServiceImpl implements StatisticsService {
 
-    @Inject
+    @Autowired
     SitesList sites;
-    @Inject
+    @Autowired
     SiteRepository siteRepository;
-    @Inject
+    @Autowired
     PageRepository pageRepository;
-    @Inject
+    @Autowired
     LemmaRepository lemmaRepository;
 
 
@@ -50,8 +50,8 @@ public class StatisticsServiceImpl implements StatisticsService {
             DetailedStatisticsItem item = new DetailedStatisticsItem();
             item.setName(site.getName());
             item.setUrl(site.getUrl());
-            SiteEntity siteEntity =  getSiteFromRepository(site, siteRepository);
-            if(siteEntity != null && siteEntity.getStatus().equals(Status.INDEXED)) {
+            SiteEntity siteEntity = getSiteFromRepository(site, siteRepository);
+            if (siteEntity != null && siteEntity.getStatus().equals(Status.INDEXED)) {
                 int pages = countPages(siteEntity, pageRepository);
                 int lemmas = countLemmas(siteEntity, lemmaRepository);
                 item.setPages(pages);
@@ -76,33 +76,33 @@ public class StatisticsServiceImpl implements StatisticsService {
         return response;
     }
 
-    private int countPages(SiteEntity site, PageRepository pageRepository){
+    private int countPages(SiteEntity site, PageRepository pageRepository) {
         int count = 0;
         List<PageEntity> pageEntityList = pageRepository.findAll();
-        for(PageEntity page:pageEntityList){
-            if(page.getSiteID().getSiteID() == site.getSiteID()){
+        for (PageEntity page : pageEntityList) {
+            if (page.getSiteID().getSiteID() == site.getSiteID()) {
                 count++;
             }
         }
         return count;
     }
 
-    private int countLemmas(SiteEntity site, LemmaRepository lemmaRepository){
+    private int countLemmas(SiteEntity site, LemmaRepository lemmaRepository) {
         int count = 0;
         List<LemmaEntity> lemmaEntityList = lemmaRepository.findAll();
-        for(LemmaEntity lemma:lemmaEntityList){
-            if(lemma.getSiteID().getSiteID() == site.getSiteID()){
+        for (LemmaEntity lemma : lemmaEntityList) {
+            if (lemma.getSiteID().getSiteID() == site.getSiteID()) {
                 count++;
             }
         }
         return count;
     }
 
-    private SiteEntity getSiteFromRepository(Site site, SiteRepository siteRepository){
+    private SiteEntity getSiteFromRepository(Site site, SiteRepository siteRepository) {
         List<SiteEntity> siteEntityList = siteRepository.findAll();
         SiteEntity resultEntity = null;
-        for(SiteEntity siteEntity:siteEntityList){
-            if(siteEntity.getName().equals(site.getName())){
+        for (SiteEntity siteEntity : siteEntityList) {
+            if (siteEntity.getName().equals(site.getName())) {
                 resultEntity = siteEntity;
             }
         }

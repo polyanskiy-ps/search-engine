@@ -1,6 +1,7 @@
 package searchengine.controllers;
 
 import lombok.AllArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -11,17 +12,15 @@ import searchengine.services.parsing.ParsingService;
 import searchengine.services.searching.SearchingService;
 import searchengine.services.statistics.StatisticsService;
 
-import javax.inject.Inject;
-
 @RestController
 @RequestMapping("/api")
 @AllArgsConstructor
 public class ApiController {
-    @Inject
+    @Autowired
     StatisticsService statisticsService;
-    @Inject
+    @Autowired
     ParsingService parsingService;
-    @Inject
+    @Autowired
     SearchingService searchingService;
 
     @GetMapping("/statistics")
@@ -46,9 +45,9 @@ public class ApiController {
 
     @GetMapping("/search")
     public ResponseEntity<SearchResponse> search(@RequestParam String query,
-                @RequestParam(required = false) String site,
-                @RequestParam Integer offset,
-                @RequestParam Integer limit) {
+                                                 @RequestParam(required = false) String site,
+                                                 @RequestParam Integer offset,
+                                                 @RequestParam Integer limit) {
         return new ResponseEntity<>(searchingService.getSearchResults(query, site, offset, limit), HttpStatus.OK);
     }
 

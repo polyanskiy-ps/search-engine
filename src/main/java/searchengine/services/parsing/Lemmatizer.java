@@ -45,7 +45,7 @@ public class Lemmatizer {
         return lemmas;
     }
 
-    private synchronized List<String> splitText(String text) {
+    private List<String> splitText(String text) {
         String[] words = text.toLowerCase()
                 .replaceAll("[^А-я\\s]", "")
                 .trim()
@@ -53,7 +53,7 @@ public class Lemmatizer {
         return new ArrayList<>(List.of(words));
     }
 
-    private synchronized boolean isNotWord(String word) {
+    private boolean isNotWord(String word) {
         List<String> wordInfo = luceneMorphology.getMorphInfo(word);
         for (String property : particlesNames) {
             if (wordInfo.toString().toUpperCase().contains(property)) {

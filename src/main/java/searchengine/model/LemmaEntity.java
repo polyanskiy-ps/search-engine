@@ -2,6 +2,7 @@ package searchengine.model;
 
 import jakarta.persistence.*;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.util.Objects;
@@ -10,6 +11,7 @@ import java.util.Objects;
 @Setter
 @Getter
 @Table(name = "lemma", schema = "search_engine")
+@NoArgsConstructor(force = true)
 public class LemmaEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -18,13 +20,20 @@ public class LemmaEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn (referencedColumnName = "site_id", name = "site_id")
-    private SiteEntity siteID;
+    private final SiteEntity siteID;
 
     @Column(name = "lemma", nullable = false, columnDefinition = "varchar(255)")
-    private String lemma;
+    private final String lemma;
 
     @Column(name = "frequency", nullable = false)
-    private int frequency;
+    private final int frequency;
+
+    public LemmaEntity(SiteEntity siteID, String lemma, int frequency) {
+        this.siteID = siteID;
+        this.lemma = lemma;
+        this.frequency = frequency;
+    }
+
 
     @Override
     public boolean equals(Object o) {
