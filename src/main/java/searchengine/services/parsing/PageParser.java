@@ -1,5 +1,6 @@
 package searchengine.services.parsing;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Connection;
 import org.jsoup.Jsoup;
@@ -17,6 +18,7 @@ import java.util.List;
 import java.util.Map;
 
 @Slf4j
+@RequiredArgsConstructor
 public class PageParser {
     private final SiteEntity site;
     private PageEntity page;
@@ -27,23 +29,8 @@ public class PageParser {
     private final SearchIndexRepository searchIndexRepository;
     private boolean contains;
 
-    public PageParser(String url,
-                      SiteEntity site,
-                      PageRepository pageRepository,
-                      SiteRepository siteRepository,
-                      LemmaRepository lemmaRepository,
-                      SearchIndexRepository searchIndexRepository) {
-        this.url = url;
-        this.site = site;
-        this.pageRepository = pageRepository;
-        this.siteRepository = siteRepository;
-        this.lemmaRepository = lemmaRepository;
-        this.searchIndexRepository = searchIndexRepository;
-    }
-
 
     public void parsePage() {
-        Document document;
 
         for (PageEntity page : pageRepository.findAll()) {
             if (page.getPagePath().equalsIgnoreCase(url)) {
@@ -65,11 +52,11 @@ public class PageParser {
 
         Connection connection = Jsoup.connect(url)
                 .ignoreContentType(true)
-                .userAgent(UserAgent.USER_AGENT)
+                .userAgent(new UserAgent().getUserAgent())
                 .referrer("https://www.google.com");
 
         try {
-            document = connection.execute().parse();
+            Document document = connection.execute().parse();
             page = new PageEntity();
             page.setSiteID(site);
             page.setPagePath(url);

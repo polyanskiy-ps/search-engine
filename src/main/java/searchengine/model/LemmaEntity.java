@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 import java.util.Objects;
 
@@ -20,6 +22,7 @@ public class LemmaEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn (referencedColumnName = "site_id", name = "site_id")
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private final SiteEntity siteID;
 
     @Column(name = "lemma", nullable = false, columnDefinition = "varchar(255)")

@@ -1,8 +1,8 @@
 package searchengine.services.parsing;
 
+import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import searchengine.config.Site;
 import searchengine.config.SitesList;
@@ -18,22 +18,20 @@ import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.util.TreeSet;
 import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.TimeUnit;
 
 @Service
 @Slf4j
+@RequiredArgsConstructor
 public class ParsingServiceImpl implements ParsingService {
 
-    @Autowired
-    SitesList sites;
-    @Autowired
-    SiteRepository siteRepository;
-    @Autowired
-    PageRepository pageRepository;
-    @Autowired
-    LemmaRepository lemmaRepository;
-    @Autowired
-    SearchIndexRepository searchIndexRepository;
+    private final SitesList sites;
+    private final SiteRepository siteRepository;
+    private final PageRepository pageRepository;
+    private final LemmaRepository lemmaRepository;
+    private final SearchIndexRepository searchIndexRepository;
     private boolean isIndexingStarted;
+    private static volatile boolean isStopped;
     private boolean isContainsUrl;
     private SiteEntity siteEntity;
     private ForkJoinPool forkJoinPool;
@@ -46,20 +44,13 @@ public class ParsingServiceImpl implements ParsingService {
         if (isIndexingStarted) {
             log.info("Запрос запуска индексации при уже выполняющейся");
             return new IndexingResponse(false, "Индексация уже запущена");
-        } else isIndexingStarted = true;
-        long startIndexing = System.currentTimeMillis();
-        log.info("Индексация запущена в {}", formatter.format(startIndexing));
-        searchIndexRepository.deleteAll();
-        lemmaRepository.deleteAll();
-        pageRepository.deleteAll();
-        siteRepository.deleteAll();
-
-        for (Site site : sites.getSites()) {
-            indexSite(site);
+        } else {
+            isIndexingStarted = true;
+            long startIndexing = System.currentTimeMillis();
+            log.info("Индексация запущена в {}", formatter.format(startIndexing));
+            new Thread(this::indexSite).start();
+            return new IndexingResponse(true);
         }
-        isIndexingStarted = false;
-        log.info("Индексация завершена за {}", System.currentTimeMillis() - startIndexing);
-        return new IndexingResponse(true);
     }
 
     @Override
@@ -67,7 +58,10 @@ public class ParsingServiceImpl implements ParsingService {
         if (!isIndexingStarted) {
             log.info("Запрос остановки индексации в момент, когда индексация не выполняется");
             return new IndexingResponse(false, "Индексация не запущена");
-        } else isIndexingStarted = false;
+        } else {
+            isIndexingStarted = false;
+            isStopped = true;
+        }
         log.info("Остановка индексации ");
         forkJoinPool.shutdownNow();
         Iterable<SiteEntity> siteList = siteRepository.findAll();
@@ -99,11 +93,14 @@ public class ParsingServiceImpl implements ParsingService {
             for (SiteEntity site : siteRepository.findAll()) {
                 if (site.getName().equals(indexingSite.getName())) {
                     siteEntity = site;
+                    System.out.println("Сайт был найден в репозитории. Запущена пере индексация страницы");
                     containsInRepository = true;
                     break;
                 }
             }
+
             if (!containsInRepository) {
+                System.out.println("Сайт не был найден в репозитории. Создается новый объект");
                 siteEntity = new SiteEntity();
                 siteEntity.setUrl(indexingSite.getUrl());
                 siteEntity.setName(indexingSite.getName());
@@ -112,34 +109,57 @@ public class ParsingServiceImpl implements ParsingService {
                 siteRepository.save(siteEntity);
             }
 
-            PageParser pageParser = new PageParser(url, siteEntity, pageRepository, siteRepository, lemmaRepository, searchIndexRepository);
+            PageParser pageParser = new PageParser(siteEntity, url, pageRepository, siteRepository,
+                    lemmaRepository, searchIndexRepository);
             pageParser.parsePage();
             return new IndexingResponse(true);
         } else {
-            log.info("Сайт не находится в перечне разрешенных в конфигурационном файле");
-            return new IndexingResponse(false, "Сайт не находится в перечне разрешенных в конфигурационном файле");
+            return new IndexingResponse(false,
+                    "Данная страница находится за пределами сайтов, указанных в конфигурационном файле");
         }
     }
 
-    private void indexSite(Site site) {
-        SiteEntity siteEntity = new SiteEntity();
-        siteEntity.setName(site.getName());
-        siteEntity.setUrl(site.getUrl());
-        siteEntity.setStatus(Status.INDEXING);
-        siteEntity.setStatusTime(LocalDateTime.now());
-        siteRepository.save(siteEntity);
+    private IndexingResponse indexSite() {
+        siteRepository.deleteAll();
+        pageRepository.deleteAll();
+        lemmaRepository.deleteAll();
+        searchIndexRepository.deleteAll();
 
-        TreeSet<String> hrefList = new TreeSet<>();
-        hrefList.add(site.getUrl());
+        for (Site site : sites.getSites()) {
+            SiteEntity siteEntity = new SiteEntity();
+            siteEntity.setName(site.getName());
+            siteEntity.setUrl(site.getUrl());
+            siteEntity.setStatus(Status.INDEXING);
+            siteEntity.setStatusTime(LocalDateTime.now());
+            siteRepository.save(siteEntity);
 
-        forkJoinPool = new ForkJoinPool(Runtime.getRuntime().availableProcessors());
-        SiteParser siteParser = new SiteParser(site.getUrl(), hrefList, siteEntity, pageRepository, siteRepository, lemmaRepository, searchIndexRepository);
-        forkJoinPool.execute(siteParser);
+            TreeSet<String> hrefList = new TreeSet<>();
+            SiteParser siteParser = new SiteParser(site.getUrl(), hrefList,
+                    siteEntity,
+                    pageRepository, siteRepository, lemmaRepository, searchIndexRepository);
 
-        forkJoinPool.shutdown();
+            hrefList.add(site.getUrl());
+            forkJoinPool = new ForkJoinPool(Runtime.getRuntime().availableProcessors());
+            forkJoinPool.execute(siteParser);
+            forkJoinPool.shutdown();
 
-        siteEntity.setStatus(Status.INDEXED);
-        siteEntity.setStatusTime(LocalDateTime.now());
-        siteRepository.save(siteEntity);
+            try {
+                forkJoinPool.awaitTermination(1, TimeUnit.HOURS);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+
+            if (isStopped) {
+                isStopped = false;
+                return new IndexingResponse(false, "Индексация остановлена пользователем");
+            }
+
+            siteEntity.setStatus(Status.INDEXED);
+            siteEntity.setStatusTime(LocalDateTime.now());
+            siteRepository.save(siteEntity);
+        }
+
+        isIndexingStarted = false;
+        return new IndexingResponse(true);
     }
 }

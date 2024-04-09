@@ -90,7 +90,6 @@
             <scope>system</scope>
             <systemPath>${pom.basedir}/lib/russian-1.5.jar</systemPath>
         </dependency>
-
         <dependency>
             <groupId>org.apache.lucene</groupId>
             <artifactId>english</artifactId>

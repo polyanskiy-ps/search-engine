@@ -1,7 +1,7 @@
 package searchengine.services.statistics;
 
 import lombok.Data;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import searchengine.config.Site;
 import searchengine.config.SitesList;
@@ -12,7 +12,6 @@ import searchengine.dto.statistics.TotalStatistics;
 import searchengine.model.LemmaEntity;
 import searchengine.model.PageEntity;
 import searchengine.model.SiteEntity;
-import searchengine.model.Status;
 import searchengine.repositories.LemmaRepository;
 import searchengine.repositories.PageRepository;
 import searchengine.repositories.SiteRepository;
@@ -24,21 +23,17 @@ import java.util.List;
 
 @Service
 @Data
+@RequiredArgsConstructor
 public class StatisticsServiceImpl implements StatisticsService {
 
-    @Autowired
-    SitesList sites;
-    @Autowired
-    SiteRepository siteRepository;
-    @Autowired
-    PageRepository pageRepository;
-    @Autowired
-    LemmaRepository lemmaRepository;
+    private final SitesList sites;
+    private final SiteRepository siteRepository;
+    private final PageRepository pageRepository;
+    private final LemmaRepository lemmaRepository;
 
 
     @Override
     public StatisticsResponse getStatistics() {
-
         TotalStatistics total = new TotalStatistics();
         total.setSites(sites.getSites().size());
         total.setIndexing(true);
@@ -51,7 +46,7 @@ public class StatisticsServiceImpl implements StatisticsService {
             item.setName(site.getName());
             item.setUrl(site.getUrl());
             SiteEntity siteEntity = getSiteFromRepository(site, siteRepository);
-            if (siteEntity != null && siteEntity.getStatus().equals(Status.INDEXED)) {
+            if (siteEntity != null) {
                 int pages = countPages(siteEntity, pageRepository);
                 int lemmas = countLemmas(siteEntity, lemmaRepository);
                 item.setPages(pages);

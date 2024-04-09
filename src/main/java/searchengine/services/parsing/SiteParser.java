@@ -1,5 +1,6 @@
 package searchengine.services.parsing;
 
+import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Connection;
@@ -21,6 +22,7 @@ import java.util.*;
 import java.util.concurrent.RecursiveAction;
 
 @Slf4j
+@RequiredArgsConstructor
 public class SiteParser extends RecursiveAction {
     private final String url;
     private final TreeSet<String> hrefList;
@@ -31,21 +33,7 @@ public class SiteParser extends RecursiveAction {
     private final SearchIndexRepository searchIndexRepository;
     private Document document;
 
-    public SiteParser(String url,
-                      TreeSet<String> hrefList,
-                      SiteEntity site,
-                      PageRepository pageRepository,
-                      SiteRepository siteRepository,
-                      LemmaRepository lemmaRepository,
-                      SearchIndexRepository searchIndexRepository) {
-        this.url = url;
-        this.hrefList = hrefList;
-        this.site = site;
-        this.pageRepository = pageRepository;
-        this.siteRepository = siteRepository;
-        this.lemmaRepository = lemmaRepository;
-        this.searchIndexRepository = searchIndexRepository;
-    }
+
 
     @Override
     @SneakyThrows
@@ -54,7 +42,7 @@ public class SiteParser extends RecursiveAction {
         Thread.sleep(250);
         Connection connection = Jsoup.connect(url)
                 .ignoreContentType(true)
-                .userAgent(UserAgent.USER_AGENT)
+                .userAgent(new UserAgent().getUserAgent())
                 .referrer("https://www.google.com");
 
         try {
@@ -103,8 +91,7 @@ public class SiteParser extends RecursiveAction {
             }
         }
 
-        for (SiteParser task : tasks)
-        {
+        for (SiteParser task : tasks) {
             task.join();
         }
     }
@@ -120,22 +107,37 @@ public class SiteParser extends RecursiveAction {
 
 
     @SneakyThrows
-    public synchronized List<String> collectLinks(String url) {
+    public  synchronized List<String> collectLinks(String url) {
+
         List<String> linkList = new ArrayList<>();
         linkList.add(url);
 
         Elements links = document.select("a[href]");
-
         for (Element element : links) {
             String link = element.attr("abs:href");
-            if (!link.startsWith(url)) continue;
-            if (link.contains("#")) continue;
-            if (link.endsWith(".shtml") || link.endsWith(".pdf") || link.endsWith(".xml") || link.endsWith("?main_click") || link.contains("?page=") || link.contains("?ref")) {
-                continue;
-            }
-            if (linkList.contains(link)) {
-                continue;
-            }
+            if (!link.contains(url.replaceAll("(http(s)?://)?(www/.)?(/.*)?", ""))) continue;
+            if (link.contains("&") ||
+                    link.contains("#") ||
+                    link.contains("?") ||
+                    link.contains("?page=") ||
+                    link.contains("?ref") ||
+                    link.contains("?main_click") ||
+                    link.endsWith(".shtml") ||
+                    link.endsWith(".pdf") ||
+                    link.endsWith(".xml") ||
+                    link.endsWith(".jpg") ||
+                    link.endsWith(".png") ||
+                    link.endsWith(".jpeg") ||
+                    link.endsWith(".jfif") ||
+                    link.endsWith(".doc") ||
+                    link.endsWith(".docx") ||
+                    link.endsWith(".xls") ||
+                    link.endsWith(".xlsx") ||
+                    link.endsWith(".pptx") ||
+                    link.endsWith(".rtf") ||
+                    link.endsWith(".mp4") ||
+                    link.endsWith(".gif")) continue;
+            if (linkList.contains(link)) continue;
             linkList.add(link);
         }
         return linkList;
